@@ -1,16 +1,31 @@
 ﻿using System;
-using System.Collections.Generic;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Driver;
+using System.Linq;
+using MongoDB.Entities;
 
 namespace MongoDbDemo
 {
     class Program
     {
+
+        //https://mongodb-entities.com/wiki/Code-Samples.html
+
+
         static void Main(string[] args)
         {
-            MongoCrud db = new MongoCrud("AddressBook");
+
+            /*
+                docker exec -it mongodb bash
+                mongo
+                show dbs
+                use AddressBook
+                db.Users.find().pretty()
+                db.myCollection.find().pretty()
+             */
+
+
+             MongoCrud db = new MongoCrud("AddressBook");
+
+            //db.DeleteRecord<PersonModel>("Users", new Guid("2c6befbe-bb73-46d4-9200-464f11cb578b"));
 
             //db.InsertRecord("Users",
             //    new PersonModel
@@ -20,8 +35,12 @@ namespace MongoDbDemo
             //            {City = "São Paulo", State = "SP", StreetAddress = "Rua Jacofer, 161", ZipCode = "02712070"}
             //    });
 
+            var personModels = db.LoadRecords<PersonModel>("Users");
 
-            var recs = db.LoadRecords<PersonModel>("Users");
+            //var nameModels = db.LoadRecords<NameModel>("Users");
+
+            //var recs = db.LoadRecords<PersonModel>("Users");
+
 
             //foreach (var personModel in recs)
             //{
@@ -34,61 +53,87 @@ namespace MongoDbDemo
             //    Console.WriteLine();
             //}
 
-            var record = db.LoadRecordById<PersonModel>("Users", new Guid("810b3aa5-d99b-4879-a249-6d11054f2094"));
+
+
+            //foreach (var personModel in personModels)
+            //{
+            //    Console.WriteLine($"{personModel.Id} : {personModel.FirstName} {personModel.LastName} ");
+
+            //    Console.WriteLine();
+            //}
+
+
+
+            //var record = db.LoadRecordById<PersonModel>("Users", new Guid("810b3aa5-d99b-4879-a249-6d11054f2094"));
+
+            //record.DateOfBirth = new DateTime(1971, 6, 24,0,0,0, DateTimeKind.Utc);
+
+            //db.UpsertRecord<PersonModel>("Users", record.Id, record);
+
+            //var newrecord = db.LoadRecordById<PersonModel>("Users", new Guid("810b3aa5-d99b-4879-a249-6d11054f2094"));
+
+           // db.DeleteRecord<PersonModel>("Users", new Guid("2c6befbe-bb73-46d4-9200-464f11cb578b"));
+
+
+
+
+            OutrosExempplos();
+
 
             Console.ReadLine();
         }
-    }
 
-
-    public class PersonModel
-    {
-        [BsonId]
-        public Guid Id { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-
-        public AddressModel PrimaryAddress { get; set; }
-
-    }
-
-    public class AddressModel
-    {
-        public string StreetAddress { get; set; }
-        public string City { get; set; }
-        public string State { get; set; }
-        public string ZipCode { get; set; }
-    }
-
-    class MongoCrud
-    {
-        private IMongoDatabase _db;
-
-        public MongoCrud(string database)
+        public class Person : Entity
         {
-            var client = new MongoClient();
-            _db = client.GetDatabase(database);
+            public string Name { get; set; }
+            public DateTime DateOfBirth { get; set; }
+            public int SiblingCount { get; set; }
         }
 
-        public void InsertRecord<T>(string table, T record)
+        private async static void OutrosExempplos()
         {
-            var collection = _db.GetCollection<T>(table);
-            collection.InsertOne(record);
-        }
+            //https://dev.to/djnitehawk/tutorial-mongodb-with-c-the-easy-way-1g68
 
-        public List<T> LoadRecords<T>(string table)
-        {
-            var collection = _db.GetCollection<T>(table);
 
-            return collection.Find(new BsonDocument()).ToList();
-        }
+            await DB.InitAsync("MyDatabase", "localhost", 27017);
 
-        public T LoadRecordById<T>(string table, Guid id)
-        {
-            var collection = _db.GetCollection<T>(table);
-            var filter = Builders<T>.Filter.Eq("Id", id);
+            var lisa = new Person
+            {
+                Name = "Lisa Malfrey",
+                DateOfBirth = new DateTime(1983, 10, 11),
+                SiblingCount = 1
+            };
 
-            return collection.Find(filter).First();
+            await lisa.SaveAsync();
+
+            Console.WriteLine($"Lisa's ID: {lisa.ID}");
+            Console.Read();
+
+            var person = await DB.Find<Person>().OneAsync(lisa.ID);
+
+            Console.WriteLine($"Found Person: {person.Name}");
+            Console.Read();
+
+            var result = (await DB.Find<Person>()
+                    .ManyAsync(p => p.SiblingCount >= 1))
+                .First();
+
+            Console.WriteLine($"Count: {result.SiblingCount}");
+            Console.Read();
+
+
+            var newPerson = await DB.Find<Person>().OneAsync(lisa.ID);
+
+            newPerson.Name = "Lisa Kudrow";
+            newPerson.SiblingCount = 2;
+
+            await newPerson.SaveAsync();
+
+            await DB.Update<Person>()
+                .Match(p => p.ID == lisa.ID)
+                .Modify(p => p.Name, "Lisa Kudrow")
+                .Modify(p => p.SiblingCount, 2)
+                .ExecuteAsync();
         }
     }
 }
