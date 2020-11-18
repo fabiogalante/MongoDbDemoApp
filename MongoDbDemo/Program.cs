@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Linq;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Entities;
 
 namespace MongoDbDemo
 {
-    class Program
+    internal class Program
     {
-
         //https://mongodb-entities.com/wiki/Code-Samples.html
 
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-
             /*
                 docker exec -it mongodb bash
                 mongo
@@ -23,7 +22,7 @@ namespace MongoDbDemo
              */
 
 
-             MongoCrud db = new MongoCrud("AddressBook");
+            var db = new MongoCrud("Picking");
 
             //db.DeleteRecord<PersonModel>("Users", new Guid("2c6befbe-bb73-46d4-9200-464f11cb578b"));
 
@@ -35,7 +34,7 @@ namespace MongoDbDemo
             //            {City = "São Paulo", State = "SP", StreetAddress = "Rua Jacofer, 161", ZipCode = "02712070"}
             //    });
 
-            var personModels = db.LoadRecords<PersonModel>("Users");
+            //var personModels = db.LoadRecords<PersonModel>("Users");
 
             //var nameModels = db.LoadRecords<NameModel>("Users");
 
@@ -54,14 +53,12 @@ namespace MongoDbDemo
             //}
 
 
-
             //foreach (var personModel in personModels)
             //{
             //    Console.WriteLine($"{personModel.Id} : {personModel.FirstName} {personModel.LastName} ");
 
             //    Console.WriteLine();
             //}
-
 
 
             //var record = db.LoadRecordById<PersonModel>("Users", new Guid("810b3aa5-d99b-4879-a249-6d11054f2094"));
@@ -72,30 +69,48 @@ namespace MongoDbDemo
 
             //var newrecord = db.LoadRecordById<PersonModel>("Users", new Guid("810b3aa5-d99b-4879-a249-6d11054f2094"));
 
-           // db.DeleteRecord<PersonModel>("Users", new Guid("2c6befbe-bb73-46d4-9200-464f11cb578b"));
+            // db.DeleteRecord<PersonModel>("Users", new Guid("2c6befbe-bb73-46d4-9200-464f11cb578b"));
 
 
+            // OutrosExempplos();
 
-
-            OutrosExempplos();
+            GravarPedidos();
 
 
             Console.ReadLine();
         }
 
-        public class Person : Entity
+        private static void GravarPedidos()
         {
-            public string Name { get; set; }
-            public DateTime DateOfBirth { get; set; }
-            public int SiblingCount { get; set; }
+            var db = new MongoCrud("Picking");
+
+            var rnd = new Random();
+
+
+            for (var i = 0; i < 2000; i++)
+            {
+                long docEntry = rnd.Next(100000, 999999);
+                long baskNum = rnd.Next(1000, 9999);
+                long docNum = rnd.Next(1000000, 9999999);
+                var fetch = new FechNextPick
+                {
+                    DocEntry = docEntry,
+                    Fork = "Simples",
+                    Location = 0,
+                    BasketNum = baskNum,
+                    BplId = 5,
+                    DocNum = docNum
+                };
+                db.InsertRecord("Ordr", fetch);
+            }
         }
 
-        private async static void OutrosExempplos()
+        private static async void OutrosExempplos()
         {
             //https://dev.to/djnitehawk/tutorial-mongodb-with-c-the-easy-way-1g68
 
 
-            await DB.InitAsync("MyDatabase", "localhost", 27017);
+            await DB.InitAsync("MyDatabase", "localhost");
 
             var lisa = new Person
             {
@@ -134,6 +149,25 @@ namespace MongoDbDemo
                 .Modify(p => p.Name, "Lisa Kudrow")
                 .Modify(p => p.SiblingCount, 2)
                 .ExecuteAsync();
+        }
+
+        public class FechNextPick
+        {
+            [BsonId] public Guid Id { get; set; }
+
+            public long DocEntry { get; set; }
+            public long DocNum { get; set; }
+            public int? BplId { get; set; }
+            public string Fork { get; set; }
+            public long BasketNum { get; set; }
+            public int Location { get; set; }
+        }
+
+        public class Person : Entity
+        {
+            public string Name { get; set; }
+            public DateTime DateOfBirth { get; set; }
+            public int SiblingCount { get; set; }
         }
     }
 }
