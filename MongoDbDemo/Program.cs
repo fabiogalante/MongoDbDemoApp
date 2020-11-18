@@ -74,10 +74,33 @@ namespace MongoDbDemo
 
             // OutrosExempplos();
 
-            GravarPedidos();
+            //GravarPedidos();
+
+            GravarCestos();
 
 
-            Console.ReadLine();
+            // Console.ReadLine();
+        }
+
+        private static void GravarCestos()
+        {
+            var db = new MongoCrud("Picking");
+
+            var rnd = new Random();
+
+            for (var i = 0; i < 1500; i++)
+            {
+                long baskNum = rnd.Next(100000, 999999);
+                long orderNum = rnd.Next(1000000, 9999999);
+                var basket = new Basket
+                {
+                    BasketNum = baskNum,
+                    DatabaseName = "SBOBBelezaNaWebProd",
+                    OrderNum = orderNum,
+                    PickEntry = 0
+                };
+                db.InsertRecord("Basket", basket);
+            }
         }
 
         private static void GravarPedidos()
@@ -161,6 +184,19 @@ namespace MongoDbDemo
             public string Fork { get; set; }
             public long BasketNum { get; set; }
             public int Location { get; set; }
+        }
+
+
+        public class Basket
+        {
+            [BsonId] public Guid Id { get; set; }
+
+            public long OrderNum { get; set; }
+
+            public long PickEntry { get; set; }
+
+            public long BasketNum { get; set; }
+            public string DatabaseName { get; set; }
         }
 
         public class Person : Entity
